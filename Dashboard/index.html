@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SocialIQ Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f5f6fa; color: #1a1a2e; }
+
+    .dash { display: grid; grid-template-columns: 200px 1fr; min-height: 100vh; }
+    .sidebar { background: #ffffff; border-right: 0.5px solid #e0e0e0; padding: 1.25rem 0; display: flex; flex-direction: column; gap: 4px; }
+    .sidebar-logo { padding: 0 1.25rem 1.25rem; font-size: 15px; font-weight: 500; border-bottom: 0.5px solid #e0e0e0; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 8px; }
+    .logo-dot { width: 22px; height: 22px; border-radius: 6px; background: #3266ad; display: flex; align-items: center; justify-content: center; }
+    .logo-dot svg { width: 13px; height: 13px; fill: #fff; }
+    .nav-item { padding: 7px 1.25rem; font-size: 13px; color: #555; cursor: pointer; border-left: 2px solid transparent; transition: all .15s; }
+    .nav-item:hover { color: #1a1a2e; background: #f5f6fa; }
+    .nav-item.active { color: #3266ad; border-left-color: #3266ad; background: #f5f6fa; font-weight: 500; }
+    .nav-section { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #999; padding: 12px 1.25rem 4px; }
+
+    .main { overflow: auto; }
+    .topbar { padding: 1rem 1.5rem; border-bottom: 0.5px solid #e0e0e0; display: flex; align-items: center; justify-content: space-between; background: #ffffff; }
+    .topbar-title { font-size: 15px; font-weight: 500; }
+    .topbar-meta { font-size: 12px; color: #888; }
+    .pill-group { display: flex; gap: 6px; }
+    .pill { padding: 4px 10px; border-radius: 20px; font-size: 11px; cursor: pointer; border: 0.5px solid #ccc; color: #555; background: transparent; transition: all .12s; }
+    .pill.active { background: #3266ad; color: #fff; border-color: #3266ad; }
+
+    .content { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+    .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: #999; margin-bottom: .75rem; font-weight: 500; }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .kpi { background: #ffffff; border-radius: 8px; padding: .875rem 1rem; }
+    .kpi-label { font-size: 11px; color: #666; margin-bottom: 6px; }
+    .kpi-value { font-size: 22px; font-weight: 500; line-height: 1; }
+    .kpi-delta { font-size: 11px; margin-top: 4px; }
+    .kpi-delta.up { color: #3b6d11; }
+    .kpi-delta.down { color: #a32d2d; }
+
+    .charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem; }
+    .chart-card { background: #ffffff; border: 0.5px solid #e0e0e0; border-radius: 10px; padding: 1.25rem; }
+    .chart-title { font-size: 13px; font-weight: 500; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+    .chart-subtitle { font-size: 11px; color: #888; font-weight: 400; }
+
+    .tables-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    .table-card { background: #ffffff; border: 0.5px solid #e0e0e0; border-radius: 10px; padding: 1.25rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { text-align: left; color: #888; font-weight: 400; font-size: 11px; padding: 0 0 8px; border-bottom: 0.5px solid #e0e0e0; }
+    td { padding: 8px 0; border-bottom: 0.5px solid #e0e0e0; color: #1a1a2e; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    .badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 500; }
+    .badge-blue { background: #e6f1fb; color: #0c447c; }
+    .badge-green { background: #eaf3de; color: #27500a; }
+    .badge-amber { background: #faeeda; color: #633806; }
+    .badge-pink { background: #fbeaf0; color: #72243e; }
+    .avatar { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; margin-right: 6px; }
+    .bar-inline { height: 6px; border-radius: 3px; background: #3266ad; display: inline-block; vertical-align: middle; }
+
+    .hashtag-list { display: flex; flex-direction: column; gap: 10px; }
+    .hashtag-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+    .hashtag-name { min-width: 100px; color: #185fa5; font-weight: 500; }
+    .hashtag-bar-bg { flex: 1; height: 6px; background: #f0f0f0; border-radius: 3px; overflow: hidden; }
+    .hashtag-bar-fill { height: 100%; border-radius: 3px; background: #3266ad; }
+    .hashtag-count { min-width: 40px; text-align: right; color: #888; font-size: 11px; }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    @media (max-width: 700px) {
+      .dash { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .charts-row, .tables-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="dash">
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-dot"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3z M9 9h6v6H9z"/></svg></div>
+      SocialIQ
+    </div>
+    <span class="nav-section">Overview</span>
+    <div class="nav-item active" onclick="showPage('overview', this)">Dashboard</div>
+    <div class="nav-item" onclick="showPage('engagement', this)">Engagement</div>
+    <span class="nav-section">Content</span>
+    <div class="nav-item" onclick="showPage('posts', this)">Top Posts</div>
+    <div class="nav-item" onclick="showPage('hashtags', this)">Hashtags</div>
+    <span class="nav-section">Audience</span>
+    <div class="nav-item" onclick="showPage('influencers', this)">Influencers</div>
+    <div class="nav-item" onclick="showPage('platforms', this)">Platforms</div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="page-title">Overview Dashboard</div>
+        <div class="topbar-meta">Last updated: April 14, 2026</div>
+      </div>
+      <div class="pill-group">
+        <div class="pill active" onclick="setRange(this,'7d')">7d</div>
+        <div class="pill" onclick="setRange(this,'30d')">30d</div>
+        <div class="pill" onclick="setRange(this,'90d')">90d</div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- OVERVIEW PAGE -->
+      <div class="page active" id="page-overview">
+        <div class="section-label">Key metrics</div>
+        <div class="kpi-grid">
+          <div class="kpi">
+            <div class="kpi-label">Total Posts</div>
+            <div class="kpi-value">2,847</div>
+            <div class="kpi-delta up">+12% vs last period</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Total Likes</div>
+            <div class="kpi-value">184K</div>
+            <div class="kpi-delta up">+8.4% vs last period</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Comments</div>
+            <div class="kpi-value">31.2K</div>
+            <div class="kpi-delta down">−2.1% vs last period</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Avg Engagement Rate</div>
+            <div class="kpi-value">4.7%</div>
+            <div class="kpi-delta up">+0.6pp vs last period</div>
+          </div>
+        </div>
+
+        <div class="charts-row" style="margin-top: 0;">
+          <div class="chart-card">
+            <div class="chart-title">Engagement over time <span class="chart-subtitle">Likes + Comments + Shares</span></div>
+            <div style="display:flex;gap:16px;margin-bottom:12px;font-size:11px;color:#888;">
+              <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#3266ad;"></span>Likes</span>
+              <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#1d9e75;"></span>Comments</span>
+              <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#d85a30;"></span>Shares</span>
+            </div>
+            <div style="position:relative;height:200px;"><canvas id="engChart" role="img" aria-label="Line chart showing likes comments and shares over 7 days">Engagement trend data.</canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Posts by platform</div>
+            <div style="position:relative;height:170px;margin-bottom:12px;"><canvas id="platChart" role="img" aria-label="Donut chart of posts per platform">Instagram 42%, Twitter 33%, YouTube 25%.</canvas></div>
+            <div style="display:flex;flex-direction:column;gap:6px;font-size:11px;color:#888;">
+              <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:2px;background:#3266ad;"></span>Instagram 42%</span>
+              <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:2px;background:#1d9e75;"></span>Twitter/X 33%</span>
+              <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:2px;background:#d85a30;"></span>YouTube 25%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tables-row">
+          <div class="table-card">
+            <div class="section-label">Top posts this week</div>
+            <table>
+              <thead><tr><th>Post</th><th>Platform</th><th style="text-align:right">Likes</th><th style="text-align:right">Shares</th></tr></thead>
+              <tbody>
+                <tr><td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Summer launch event recap</td><td><span class="badge badge-blue">Instagram</span></td><td style="text-align:right">12.4K</td><td style="text-align:right">892</td></tr>
+                <tr><td>New product teaser video</td><td><span class="badge badge-amber">YouTube</span></td><td style="text-align:right">9.1K</td><td style="text-align:right">634</td></tr>
+                <tr><td>Weekly poll results</td><td><span class="badge badge-green">Twitter</span></td><td style="text-align:right">7.8K</td><td style="text-align:right">412</td></tr>
+                <tr><td>Behind the scenes reel</td><td><span class="badge badge-blue">Instagram</span></td><td style="text-align:right">6.2K</td><td style="text-align:right">308</td></tr>
+                <tr><td>Tutorial: getting started</td><td><span class="badge badge-amber">YouTube</span></td><td style="text-align:right">4.9K</td><td style="text-align:right">201</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-card">
+            <div class="section-label">Trending hashtags</div>
+            <div class="hashtag-list">
+              <div class="hashtag-row"><span class="hashtag-name">#SummerLaunch</span><div class="hashtag-bar-bg"><div class="hashtag-bar-fill" style="width:92%"></div></div><span class="hashtag-count">2.3K</span></div>
+              <div class="hashtag-row"><span class="hashtag-name">#TechTrends</span><div class="hashtag-bar-bg"><div class="hashtag-bar-fill" style="width:78%"></div></div><span class="hashtag-count">1.9K</span></div>
+              <div class="hashtag-row"><span class="hashtag-name">#DigitalLife</span><div class="hashtag-bar-bg"><div class="hashtag-bar-fill" style="width:65%"></div></div><span class="hashtag-count">1.6K</span></div>
+              <div class="hashtag-row"><span class="hashtag-name">#Marketing</span><div class="hashtag-bar-bg"><div class="hashtag-bar-fill" style="width:54%"></div></div><span class="hashtag-count">1.3K</span></div>
+              <div class="hashtag-row"><span class="hashtag-name">#ContentWins</span><div class="hashtag-bar-bg"><div class="hashtag-bar-fill" style="width:40%"></div></div><span class="hashtag-count">980</span></div>
+              <div class="hashtag-row"><span class="hashtag-name">#GrowthHacks</span><div class="hashtag-bar-bg"><div class="hashtag-bar-fill" style="width:30%"></div></div><span class="hashtag-count">720</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ENGAGEMENT PAGE -->
+      <div class="page" id="page-engagement">
+        <div class="section-label">Engagement breakdown</div>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-label">Total Likes</div><div class="kpi-value">184K</div><div class="kpi-delta up">+8.4%</div></div>
+          <div class="kpi"><div class="kpi-label">Total Comments</div><div class="kpi-value">31.2K</div><div class="kpi-delta down">−2.1%</div></div>
+          <div class="kpi"><div class="kpi-label">Total Shares</div><div class="kpi-value">18.9K</div><div class="kpi-delta up">+15.3%</div></div>
+          <div class="kpi"><div class="kpi-label">Saves / Bookmarks</div><div class="kpi-value">9.4K</div><div class="kpi-delta up">+5.8%</div></div>
+        </div>
+        <div class="chart-card" style="margin-top:0;">
+          <div class="chart-title">Engagement by day of week <span class="chart-subtitle">Avg. interactions</span></div>
+          <div style="display:flex;gap:16px;margin-bottom:12px;font-size:11px;color:#888;">
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#3266ad;"></span>Likes</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#1d9e75;"></span>Comments</span>
+          </div>
+          <div style="position:relative;height:220px;"><canvas id="dowChart" role="img" aria-label="Bar chart of average engagement per day of week">Highest on Wednesday and Thursday.</canvas></div>
+        </div>
+      </div>
+
+      <!-- POSTS PAGE -->
+      <div class="page" id="page-posts">
+        <div class="section-label">Top performing posts</div>
+        <div class="table-card">
+          <table>
+            <thead><tr><th>#</th><th>Title</th><th>Author</th><th>Platform</th><th style="text-align:right">Likes</th><th style="text-align:right">Comments</th><th style="text-align:right">Shares</th><th style="text-align:right">Eng. Rate</th></tr></thead>
+            <tbody id="posts-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- HASHTAGS PAGE -->
+      <div class="page" id="page-hashtags">
+        <div class="section-label">Hashtag analytics</div>
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="chart-title">Top hashtags by usage</div>
+            <div style="position:relative;height:280px;"><canvas id="hashBarChart" role="img" aria-label="Horizontal bar chart of top hashtags">SummerLaunch leads with 2300 uses.</canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="section-label" style="margin-bottom:.5rem;">Hashtag performance</div>
+            <div class="hashtag-list" style="margin-top:.5rem;">
+              <div class="hashtag-row"><span class="hashtag-name">#SummerLaunch</span><div class="hashtag-bar-bg"><div class="hashtag-bar-fill" style="width:92%;background:#3266ad"></div></div><span class="hashtag-count">2.3K</span></div>
+              <div class="hashtag-row"><span class="hashtag-name">#TechTrends</span><div class="hashtag-bar-bg"><div class="hashtag-bar-fill" style="width:78%;background:#1d9e75"></div></div><span class="hashtag-count">1.9K</span></div>
+              <div class="hashtag-row"><span class="hashtag-name">#DigitalLife</span><div class="hashtag-bar-bg"><div class="hashtag-bar-fill" style="width:65%;background:#d85a30"></div></div><span class="hashtag-count">1.6K</span></div>
+              <div class="hashtag-row"><span class="hashtag-name">#Marketing</span><div class="hashtag-bar-bg"><div class="hashtag-bar-fill" style="width:54%;background:#3266ad"></div></div><span class="hashtag-count">1.3K</span></div>
+              <div class="hashtag-row"><span class="hashtag-name">#ContentWins</span><div class="hashtag-bar-bg"><div class="hashtag-bar-fill" style="width:40%;background:#1d9e75"></div></div><span class="hashtag-count">980</span></div>
+              <div class="hashtag-row"><span class="hashtag-name">#GrowthHacks</span><div class="hashtag-bar-bg"><div class="hashtag-bar-fill" style="width:30%;background:#d85a30"></div></div><span class="hashtag-count">720</span></div>
+              <div class="hashtag-row"><span class="hashtag-name">#DataDriven</span><div class="hashtag-bar-bg"><div class="hashtag-bar-fill" style="width:24%;background:#3266ad"></div></div><span class="hashtag-count">580</span></div>
+              <div class="hashtag-row"><span class="hashtag-name">#AITools</span><div class="hashtag-bar-bg"><div class="hashtag-bar-fill" style="width:18%;background:#1d9e75"></div></div><span class="hashtag-count">430</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INFLUENCERS PAGE -->
+      <div class="page" id="page-influencers">
+        <div class="section-label">Top influencers & active users</div>
+        <div class="tables-row">
+          <div class="table-card">
+            <div class="section-label" style="margin-bottom:.75rem;">Top influencers by reach</div>
+            <table>
+              <thead><tr><th>User</th><th>Platform</th><th style="text-align:right">Followers</th><th style="text-align:right">Avg. Likes</th></tr></thead>
+              <tbody id="influencer-table"></tbody>
+            </table>
+          </div>
+          <div class="table-card">
+            <div class="section-label" style="margin-bottom:.75rem;">Most active users (posts)</div>
+            <table>
+              <thead><tr><th>User</th><th style="text-align:right">Posts</th><th style="text-align:right">Engagement</th><th>Activity</th></tr></thead>
+              <tbody id="active-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PLATFORMS PAGE -->
+      <div class="page" id="page-platforms">
+        <div class="section-label">Platform comparison</div>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-label">Instagram Posts</div><div class="kpi-value">1,196</div><div class="kpi-delta up">+14%</div></div>
+          <div class="kpi"><div class="kpi-label">Twitter/X Posts</div><div class="kpi-value">939</div><div class="kpi-delta up">+9%</div></div>
+          <div class="kpi"><div class="kpi-label">YouTube Posts</div><div class="kpi-value">712</div><div class="kpi-delta up">+18%</div></div>
+          <div class="kpi"><div class="kpi-label">Best Eng. Platform</div><div class="kpi-value">Instagram</div><div class="kpi-delta up">5.8% avg rate</div></div>
+        </div>
+        <div class="chart-card" style="margin-top:0;">
+          <div class="chart-title">Platform engagement comparison <span class="chart-subtitle">Likes, comments, shares per platform</span></div>
+          <div style="display:flex;gap:16px;margin-bottom:12px;font-size:11px;color:#888;">
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#3266ad;"></span>Likes</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#1d9e75;"></span>Comments</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#d85a30;"></span>Shares</span>
+          </div>
+          <div style="position:relative;height:240px;"><canvas id="platCompChart" role="img" aria-label="Grouped bar chart comparing likes comments shares across Instagram Twitter YouTube">Instagram has highest likes.</canvas></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const pageTitles = { overview:'Overview Dashboard', engagement:'Engagement Analytics', posts:'Top Posts', hashtags:'Hashtag Analysis', influencers:'Influencers & Active Users', platforms:'Platform Comparison' };
+
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  el.classList.add('active');
+  document.getElementById('page-title').textContent = pageTitles[id];
+  if (id === 'hashtags' && !window.hashChartDone) initHashChart();
+  if (id === 'engagement' && !window.dowChartDone) initDowChart();
+  if (id === 'platforms' && !window.platCompDone) initPlatCompChart();
+}
+
+function setRange(el) {
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+}
+
+const days = ['Apr 8','Apr 9','Apr 10','Apr 11','Apr 12','Apr 13','Apr 14'];
+const likesData = [8400, 9200, 7800, 11200, 13400, 10100, 12300];
+const commentsData = [1200, 1450, 980, 1800, 2100, 1600, 1900];
+const sharesData = [430, 510, 390, 720, 890, 640, 780];
+
+new Chart(document.getElementById('engChart'), {
+  type: 'line',
+  data: { labels: days, datasets: [
+    { label:'Likes', data: likesData, borderColor:'#3266ad', backgroundColor:'rgba(50,102,173,0.08)', tension:.4, pointRadius:3, fill:true, borderWidth:2 },
+    { label:'Comments', data: commentsData, borderColor:'#1d9e75', backgroundColor:'transparent', tension:.4, pointRadius:3, borderWidth:2 },
+    { label:'Shares', data: sharesData, borderColor:'#d85a30', backgroundColor:'transparent', tension:.4, pointRadius:3, borderWidth:2 }
+  ]},
+  options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ x:{ grid:{ color:'rgba(128,128,128,0.1)' }, ticks:{ font:{size:11} } }, y:{ grid:{ color:'rgba(128,128,128,0.1)' }, ticks:{ font:{size:11}, callback: v => v >= 1000 ? (v/1000).toFixed(1)+'K' : v } } } }
+});
+
+new Chart(document.getElementById('platChart'), {
+  type: 'doughnut',
+  data: { labels:['Instagram','Twitter/X','YouTube'], datasets:[{ data:[42,33,25], backgroundColor:['#3266ad','#1d9e75','#d85a30'], borderWidth:0, hoverOffset:4 }] },
+  options: { responsive:true, maintainAspectRatio:false, cutout:'70%', plugins:{ legend:{ display:false } } }
+});
+
+const posts = [
+  {title:'Summer launch event recap', author:'@Tanvi', platform:'Instagram', likes:12400, comments:892, shares:452, er:'6.2%'},
+  {title:'New product teaser video', author:'@Daksh', platform:'YouTube', likes:9100, comments:634, shares:301, er:'5.8%'},
+  {title:'Weekly poll results', author:'@Jiya', platform:'Twitter', likes:7800, comments:412, shares:218, er:'4.9%'},
+  {title:'Behind the scenes reel', author:'@Tanvi', platform:'Instagram', likes:6200, comments:308, shares:167, er:'4.3%'},
+  {title:'Tutorial: getting started', author:'@Daksh', platform:'YouTube', likes:4900, comments:201, shares:98, er:'3.8%'},
+  {title:'Throwback Thursday vibes', author:'@Payal', platform:'Instagram', likes:4100, comments:188, shares:74, er:'3.2%'},
+  {title:'Hot take: AI in marketing', author:'@Jiya', platform:'Twitter', likes:3700, comments:421, shares:312, er:'5.1%'},
+  {title:'Unboxing the new release', author:'@Daksh', platform:'YouTube', likes:3200, comments:145, shares:62, er:'2.9%'},
+];
+const platBadge = { Instagram:'badge-blue', Twitter:'badge-green', YouTube:'badge-amber' };
+const tbody = document.getElementById('posts-table-body');
+posts.forEach((p, i) => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td style="color:#888">${i+1}</td><td style="max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title}</td><td style="color:#888">${p.author}</td><td><span class="badge ${platBadge[p.platform]}">${p.platform}</span></td><td style="text-align:right">${(p.likes/1000).toFixed(1)}K</td><td style="text-align:right">${p.comments.toLocaleString()}</td><td style="text-align:right">${p.shares.toLocaleString()}</td><td style="text-align:right;color:#3b6d11;font-weight:500">${p.er}</td>`;
+  tbody.appendChild(tr);
+});
+
+const influencers = [
+  {name:'@Tanvi', initials:'JD', color:'#3266ad', platform:'Instagram', followers:'248K', likes:'8.4K'},
+  {name:'@Daksh', initials:'TB', color:'#1d9e75', platform:'YouTube', followers:'189K', likes:'6.2K'},
+  {name:'@Jiya', initials:'MP', color:'#d85a30', platform:'Twitter', followers:'134K', likes:'4.1K'},
+  {name:'@Payal', initials:'LK', color:'#9e1d7a', platform:'Instagram', followers:'98K', likes:'3.8K'},
+  {name:'@newsguru', initials:'NG', color:'#3266ad', platform:'Twitter', followers:'76K', likes:'2.9K'},
+];
+const itbody = document.getElementById('influencer-table');
+influencers.forEach(u => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><span class="avatar" style="background:${u.color}22;color:${u.color}">${u.initials}</span>${u.name}</td><td><span class="badge ${platBadge[u.platform] || 'badge-blue'}">${u.platform}</span></td><td style="text-align:right">${u.followers}</td><td style="text-align:right">${u.likes}</td>`;
+  itbody.appendChild(tr);
+});
+
+const activeUsers = [
+  {name:'@Jiya', initials:'MP', color:'#d85a30', posts:142, eng:'5.1%', w:90},
+  {name:'@Tanvi', initials:'JD', color:'#3266ad', posts:128, eng:'6.2%', w:81},
+  {name:'@Daksh', initials:'TB', color:'#1d9e75', posts:97, eng:'5.8%', w:62},
+  {name:'@Payal', initials:'LK', color:'#9e1d7a', posts:84, eng:'3.2%', w:53},
+  {name:'@newsguru', initials:'NG', color:'#3266ad', posts:71, eng:'4.4%', w:45},
+];
+const atbody = document.getElementById('active-table');
+activeUsers.forEach(u => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><span class="avatar" style="background:${u.color}22;color:${u.color}">${u.initials}</span>${u.name}</td><td style="text-align:right">${u.posts}</td><td style="text-align:right;color:#3b6d11;font-weight:500">${u.eng}</td><td><span class="bar-inline" style="width:${u.w}px"></span></td>`;
+  atbody.appendChild(tr);
+});
+
+function initDowChart() {
+  window.dowChartDone = true;
+  new Chart(document.getElementById('dowChart'), {
+    type:'bar',
+    data:{ labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], datasets:[
+      { label:'Likes', data:[6200,7800,9400,10200,8100,7200,5400], backgroundColor:'#3266ad', borderRadius:4 },
+      { label:'Comments', data:[980,1200,1640,1820,1340,1100,780], backgroundColor:'#1d9e75', borderRadius:4 }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ x:{ grid:{display:false}, ticks:{font:{size:11}} }, y:{ grid:{ color:'rgba(128,128,128,0.1)' }, ticks:{ font:{size:11}, callback: v => v >= 1000 ? (v/1000).toFixed(0)+'K' : v } } } }
+  });
+}
+
+function initHashChart() {
+  window.hashChartDone = true;
+  new Chart(document.getElementById('hashBarChart'), {
+    type:'bar', indexAxis:'y',
+    data:{ labels:['#SummerLaunch','#TechTrends','#DigitalLife','#Marketing','#ContentWins','#GrowthHacks','#DataDriven','#AITools'], datasets:[{ label:'Uses', data:[2300,1900,1600,1300,980,720,580,430], backgroundColor:'#3266ad', borderRadius:4 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ x:{ grid:{ color:'rgba(128,128,128,0.1)' }, ticks:{ font:{size:11} } }, y:{ grid:{display:false}, ticks:{ font:{size:11} } } } }
+  });
+}
+
+function initPlatCompChart() {
+  window.platCompDone = true;
+  new Chart(document.getElementById('platCompChart'), {
+    type:'bar',
+    data:{ labels:['Instagram','Twitter/X','YouTube'], datasets:[
+      { label:'Likes', data:[82000,54000,48000], backgroundColor:'#3266ad', borderRadius:4 },
+      { label:'Comments', data:[14200,9800,7200], backgroundColor:'#1d9e75', borderRadius:4 },
+      { label:'Shares', data:[8400,5900,4600], backgroundColor:'#d85a30', borderRadius:4 }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ x:{ grid:{display:false}, ticks:{font:{size:12}} }, y:{ grid:{ color:'rgba(128,128,128,0.1)' }, ticks:{ font:{size:11}, callback: v => v >= 1000 ? (v/1000).toFixed(0)+'K' : v } } } }
+  });
+}
+</script>
+
+</body>
+</html>
+
